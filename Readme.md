@@ -63,3 +63,19 @@ SOCK_STREAM
 Meaning: SOCK_STREAM specifies that the socket will use a stream-oriented protocol, typically TCP (Transmission Control Protocol).
 Purpose: It ensures reliable, ordered, and error-checked delivery of data between applications.
 Example: When creating a TCP socket, you combine AF_INET with SOCK_STREAM:
+
+Blocking and non blocking modes.
+
+In TCP networking, blocking functions refer to socket operations (like connect(), accept(), recv(), and send()) that pause the execution of the calling program until the operation completes, or until an error occurs. This means the program is essentially waiting for something to happen on the network connection before continuing.
+Here's a more detailed explanation:
+Blocking Mode:
+Sockets in their default state are typically in blocking mode. This means that when you call a blocking function, the program will pause and wait until the operation completes, such as receiving data, establishing a connection, or sending data.
+Example:
+If you call recv() (read from the socket) in blocking mode, the program will halt until at least one byte of data is received from the remote end, or until an error occurs.
+Non-Blocking Mode:
+You can switch a socket to non-blocking mode. In this mode, blocking functions return immediately, regardless of whether the operation has completed. Instead of waiting, the program can continue executing other tasks while monitoring the socket's status.
+Why use blocking sockets:
+Blocking sockets are simple to use and understand, making them suitable for beginners and straightforward network applications.
+Why use non-blocking sockets:
+Non-blocking sockets are essential for creating efficient applications that can handle multiple connections concurrently or need to handle situations where a connection might time out.
+Non blocking modes may not be supported by esp32 wifi as settings like "setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, sizeof(int)); // set receive time out for 5 seconds " did not seem to work. also this info was found somewhere in google. use poll(), select(), fnclt(), functions related to file descriptors to make a function non blocking.

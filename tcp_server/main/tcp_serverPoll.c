@@ -32,24 +32,51 @@
 #define KEEPALIVE_COUNT CONFIG_EXAMPLE_KEEPALIVE_COUNT
 static const char *TAG = "example";
 
-int set_nonblocking(int sockfd)
-{
-    int flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags == -1)
-        return -1;
-    return fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-}
-
 static void do_retransmit(const int sock)
 {
     int len = -1;
     char rx_buffer[128];
+
+    struct pollfd fds[1];
+    fds[0].fd = sock;
+    fds[0].events = POLLIN;
+
     int flags = fcntl(sock, F_GETFL, 0);
     fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
     do
     {
-        len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0); // code stucks here on client code crash
+        int ret = poll(fds, 1, 5000); // wait 5 seconds
+        if (ret == -1)
+        {
+            perror("poll");
+            break;
+        }
+        else if (ret == 0)
+        {
+            printf("Timeout: no data in 5 seconds\n");
+            // continue;
+            goto exit;
+        }
+
+        if (fds[0].revents & POLLIN)
+        {
+            printf("DataAvailable\n");
+            // Proceed with reading data from the socket
+            len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0); // code stucks here on client code crash
+        }
+        else if (fds[0].revents & POLLERR)
+        {
+            printf("Error on socket\n");
+            // Handle socket error, perhaps close the socket
+            goto exit;
+        }
+        else if (fds[0].revents & POLLHUP)
+        {
+            printf("Socket hung up\n");
+            // Handle socket hang up, perhaps close the socket
+            goto exit;
+        }
         if (len < 0)
         {
             ESP_LOGE(TAG, "Error occurred during receiving: errno %d", errno);
@@ -57,13 +84,6 @@ static void do_retransmit(const int sock)
         else if (len == 0)
         {
             ESP_LOGW(TAG, "Connection closed");
-        }
-        else if (errno == EAGAIN || errno == EWOULDBLOCK)
-        {
-            // No data available now
-            printf("No data yet... waiting\n");
-            usleep(500000); // Sleep for 0.5 seconds
-            continue;
         }
         else
         {
@@ -86,6 +106,7 @@ static void do_retransmit(const int sock)
             }
         }
     } while (len > 0);
+exit:
 }
 
 static void tcp_server_task(void *pvParameters)
@@ -161,14 +182,6 @@ static void tcp_server_task(void *pvParameters)
         struct sockaddr_storage source_addr; // The SOCKADDR_STORAGE structure is sufficiently large to store address information for IPv4, IPv6, or other address families.
         socklen_t addr_len = sizeof(source_addr);
         int sock = accept(listen_sock, (struct sockaddr *)&source_addr, &addr_len);
-        // Set the client socket to non-blocking mode
-        if (set_nonblocking(sock) < 0)
-        {
-            perror("Failed to set non-blocking");
-            close(sock);
-            exit(EXIT_FAILURE);
-        }
-
         if (sock < 0)
         {
             ESP_LOGE(TAG, "Unable to accept connection: errno %d", errno);
