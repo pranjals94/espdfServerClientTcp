@@ -17,7 +17,7 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "protocol_examples_common.h"
-
+// lwIP (lightweight IP) is a widely used open-source TCP/IP stack designed for embedded systems.
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
