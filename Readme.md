@@ -79,3 +79,104 @@ Blocking sockets are simple to use and understand, making them suitable for begi
 Why use non-blocking sockets:
 Non-blocking sockets are essential for creating efficient applications that can handle multiple connections concurrently or need to handle situations where a connection might time out.
 Non blocking modes may not be supported by esp32 wifi as settings like "setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, sizeof(int)); // set receive time out for 5 seconds " did not seem to work. also this info was found somewhere in google. use poll(), select(), fnclt(), functions related to file descriptors to make a function non blocking.
+
+Blocking and Nonblocking IO in Operating System for more information visit link
+https://www.geeksforgeeks.org/blocking-and-nonblocking-io-in-operating-system/
+
+Here are the main techniques to handle multiple connections in a server:
+
+1. Iterative (Single-threaded Blocking I/O)
+   Basic Idea: Accept and handle one client at a time.
+
+Not suitable for handling multiple clients concurrently.
+
+Example: Traditional basic TCP server using accept() and then handling the client synchronously.
+
+✅ Simple to implement
+
+❌ Terrible scalability
+
+2. Multi-Threaded Blocking I/O
+   Each client gets a separate thread.
+
+Easy to implement with languages like Java or Python using threading.Thread.
+
+✅ Good for a moderate number of clients
+
+❌ Heavy resource usage (too many threads = high memory + context switching)
+
+3. Thread Pool
+   Use a pool of worker threads to handle clients.
+
+Prevents thread explosion from too many connections.
+
+✅ More efficient than per-connection threading
+
+❌ Still blocking I/O, so not ideal for very high concurrency
+
+4. Non-blocking I/O (Select / Poll / Epoll / Kqueue)
+   Use system calls like:
+
+select() — works on all OSes, but inefficient for many sockets
+
+poll() — better than select(), but still linear scan
+
+epoll() (Linux) or kqueue() (BSD/macOS) — efficient for thousands of connections
+
+No dedicated thread per connection; instead, use events.
+
+✅ Efficient and scalable
+✅ Used in high-performance servers (e.g., Nginx, Node.js)
+❌ More complex to implement
+
+5. Asynchronous I/O (Async/Await)
+   Language-level async using coroutines.
+
+Works with event loops (asyncio in Python, async/await in JS, etc.)
+
+✅ Very scalable
+
+✅ Ideal for I/O-bound operations
+
+❌ Not ideal for CPU-heavy tasks
+
+6. Multiprocessing
+   Spawn separate processes for handling connections.
+
+Can be used with fork() or multiprocessing libraries.
+
+✅ Leverages multiple CPU cores
+
+❌ Higher memory usage, slower IPC (inter-process communication)
+
+7. Hybrid Models
+   Combine multiple techniques: e.g., event-driven + thread pool.
+
+Example: Nginx uses event loop + worker processes.
+
+✅ Very powerful for real-world applications
+
+❌ Requires careful design
+
+More info:
+Servers employ several techniques to handle multiple connections concurrently, including multi-threading, multi-processing, event-driven architectures, and load balancing. These approaches allow servers to efficiently process requests from many clients simultaneously without blocking each other.
+
+1. Multi-threading and Multi-processing:
+   Multi-threading:
+   A single server process can create multiple threads, each handling a separate client connection. This allows for parallel processing of requests within the same process.
+   Multi-processing:
+   The server can create multiple independent processes, each handling a set of client connections. This approach can be helpful when dealing with resource-intensive tasks or when different processes need to have isolated environments.
+2. Event-driven Architecture:
+   Servers using an event-driven model can handle thousands of connections with just a few threads by using non-blocking I/O.
+   Instead of waiting for each request to finish, the server handles other tasks while waiting for I/O operations, such as reading data from the network.
+3. Load Balancing:
+   Load balancers distribute incoming requests across multiple servers, ensuring that no single server becomes overloaded.
+   This improves performance and availability by distributing the workload and providing redundancy.
+4. Thread Pools:
+   A thread pool is a collection of threads that are ready to handle incoming requests.
+   When a new request arrives, a thread from the pool is assigned to handle it, and then returns to the pool when the request is complete.
+5. Asynchronous Programming:
+   Asynchronous programming allows the server to handle multiple requests without blocking the execution of other requests.
+   This means the server can process several requests concurrently without waiting for one to complete before moving to the next.
+   Example:
+   Imagine a web server handling requests from many clients. It could use multi-threading to create a thread for each incoming connection. Each thread would then handle the specific client's request, such as retrieving a webpage or processing user input.

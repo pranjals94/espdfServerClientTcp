@@ -42,6 +42,8 @@ int set_nonblocking(int sockfd)
 
 static void do_retransmit(const int sock)
 {
+    /*int len = -1; -1 because some functions returns 0 and higher numbers to indicate the status,
+    less than 0 indicates errors. */
     int len = -1;
     char rx_buffer[128];
     int flags = fcntl(sock, F_GETFL, 0);
@@ -49,7 +51,7 @@ static void do_retransmit(const int sock)
 
     do
     {
-        len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0); // code stucks here on client code crash
+        len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0); // code stucks here on client code crash so fcntl(sockfd, F_GETFL, 0) is used
         if (len < 0)
         {
             ESP_LOGE(TAG, "Error occurred during receiving: errno %d", errno);
@@ -160,7 +162,7 @@ static void tcp_server_task(void *pvParameters)
 
         struct sockaddr_storage source_addr; // The SOCKADDR_STORAGE structure is sufficiently large to store address information for IPv4, IPv6, or other address families.
         socklen_t addr_len = sizeof(source_addr);
-        int sock = accept(listen_sock, (struct sockaddr *)&source_addr, &addr_len);
+        int sock = accept(listen_sock, (struct sockaddr *)&source_addr, &addr_len); // code gets blocked (blocking i/o) here until some connection is established.
         // Set the client socket to non-blocking mode
         if (set_nonblocking(sock) < 0)
         {
